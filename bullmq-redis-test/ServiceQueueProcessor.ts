@@ -1,29 +1,25 @@
-import { Queue, Worker, QueueScheduler } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import Redis from 'ioredis';
+import ConnectionOptions from 'ioredis';
 import { calculateTotal } from './calculateTotalService';
 
 export class ServiceQueueProcessor {
-    private redisClient: Redis.Redis;
+    private redisClient: Redis;
     private queue: Queue;
     private worker: Worker;
-    private queueScheduler: QueueScheduler;
 
-    constructor(redisClient: Redis.Redis) {
+    constructor(redisClient: Redis) {
         this.redisClient = redisClient;
 
-        const redisConnectionOptions: Redis.ConnectionOptions = {
-            host: this.redisClient.options.host,
-            port: this.redisClient.options.port,
-        };
-
         this.queue = new Queue('service_queue', {
-            connection: redisConnectionOptions,
+            connection: this.redisClient,
         });
 
         this.worker = new Worker('service_queue', async job => {
             try {
-                const serviceName = job.data.serviceName;
-                const args = job.data.args;
+                const serviceName = job.name;
+                const args = job.data;
+                console.log("Parameters: ", serviceName, args[0]);
 
                 await this.calculateTotal(args[0], args[1]);
 
@@ -31,13 +27,10 @@ export class ServiceQueueProcessor {
             } catch (error) {
                 console.error('Error processing service function call:', error);
             }
-        });
-
-        this.queueScheduler = new QueueScheduler('service_queue', {
-            connection: redisConnectionOptions,
+        }, {
             limiter: {
-                max: 3, // Process 3 jobs at a time
-                duration: 1000, // 1 second delay between batches
+                max: 1, // Process 1 job at a time
+                duration: 3000, // 3 second delay between batches
             },
         });
         
@@ -46,7 +39,7 @@ export class ServiceQueueProcessor {
 
     async scheduleCalculateTotal(a: number, b: number): Promise<void> {
         try {
-            await this.queue.add('calculate_total', { a, b });
+            await this.queue.add('calculate_total', [ a, b ]);
             console.log('CalculateTotal function call scheduled');
         } catch (error) {
             console.error('Error scheduling CalculateTotal function call:', error);

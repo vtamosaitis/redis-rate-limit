@@ -11,27 +11,33 @@ async function testServiceQueueProcessor() {
     const serviceQueueProcessor = new ServiceQueueProcessor(redisClient);
 
     // Simulate scheduling CalculateTotal function calls
-    await serviceQueueProcessor.scheduleCalculateTotal(10, 20);
-    await serviceQueueProcessor.scheduleCalculateTotal(5, 7);
-    await serviceQueueProcessor.scheduleCalculateTotal(100, 200);
+    await serviceQueueProcessor.scheduleCalculateTotal(0, 0);
+    await serviceQueueProcessor.scheduleCalculateTotal(0, 1);
+    await serviceQueueProcessor.scheduleCalculateTotal(1, 1);
+    await serviceQueueProcessor.scheduleCalculateTotal(1, 2);
+    await serviceQueueProcessor.scheduleCalculateTotal(2, 2);
+    await serviceQueueProcessor.scheduleCalculateTotal(2, 3);
 
-    // Busy-wait loop to simulate work
+
+    // Simulate normal program work for 15 seconds
     const startTime = Date.now();
     const endTime = startTime + 15000; // 15 seconds from now
-    while (Date.now() < endTime) {
+    function eventLoop() {
         const currentTime = Date.now();
         const runTime = currentTime - startTime;
         console.log(`Run time: ${runTime}ms`);
 
-        // Wait for 1 second before the next iteration
-        const nextTime = currentTime + 1000;
-        while (Date.now() < nextTime) {
-            // Busy-wait
+        if (currentTime < endTime) {
+            setTimeout(eventLoop, 1000);
+        } else {
+            console.log('Event loop finished.');
+            // Close the Redis connection
+            redisClient.quit();
         }
     }
 
-    // Close the Redis connection
-    redisClient.quit();
+    console.log('Event loop starting...');
+    eventLoop();
 }
 
 testServiceQueueProcessor().catch(error => {
