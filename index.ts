@@ -48,12 +48,11 @@ async function addEvents(serviceQueueProcessor: ServiceQueueProcessor): Promise<
         res.push(await serviceQueueProcessor.scheduleCalculateTotal(1, 2));
         res.push(await serviceQueueProcessor.scheduleCalculateTotal(2, 2));
         res.push(await serviceQueueProcessor.scheduleCalculateTotal(2, 3));
-        console.log('All events added');
+        // console.log('All events added');
         for (const val of res) {
             console.log('results:', val);
         }
-        console.log('Queue length:', await serviceQueueProcessor.getJobCount());
-        console.log('Queue delayed #:', await serviceQueueProcessor.getDelayedCount());
+        // console.log('Queue length:', await serviceQueueProcessor.getJobCount());
     } catch (error) {
         console.error('There was an error processing on of the jobs');
     }
